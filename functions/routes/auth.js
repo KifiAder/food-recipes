@@ -27,10 +27,32 @@ const validateUserData = (data) => {
 // Регистрация
 router.post('/register', async (req, res) => {
     try {
+        const startTime = Date.now();
         const { username, email, password } = req.body;
 
-        // Валидация данных
-        const validationErrors = validateUserData({ username, email, password });
+        // Быстрая предварительная валидация
+        if (!username || !email || !password) {
+            return res.status(400).json({ 
+                message: 'Все поля обязательны для заполнения'
+            });
+        }
+
+        // Нормализация данных
+        const normalizedEmail = email.toLowerCase().trim();
+        const normalizedUsername = username.trim();
+
+        // Параллельное выполнение валидации и проверки существующего пользователя
+        const [validationErrors, existingUser] = await Promise.all([
+            Promise.resolve(validateUserData({ username: normalizedUsername, email: normalizedEmail, password })),
+            User.findOne({ 
+                $or: [
+                    { email: normalizedEmail },
+                    { username: normalizedUsername }
+                ]
+            }).lean() // Используем lean() для более быстрого запроса
+        ]);
+
+        // Проверка результатов валидации
         if (validationErrors.length > 0) {
             return res.status(400).json({ 
                 message: 'Ошибка валидации',
@@ -38,46 +60,50 @@ router.post('/register', async (req, res) => {
             });
         }
 
-        // Проверка существования пользователя
-        const existingUser = await User.findOne({ 
-            $or: [
-                { email: email.toLowerCase() },
-                { username: username.trim() }
-            ]
-        });
-        
+        // Проверка существующего пользователя
         if (existingUser) {
-            if (existingUser.email === email.toLowerCase()) {
-                return res.status(400).json({ message: 'Этот email уже зарегистрирован' });
-            }
-            return res.status(400).json({ message: 'Это имя пользователя уже занято' });
+            return res.status(400).json({ 
+                message: existingUser.email === normalizedEmail 
+                    ? 'Этот email уже зарегистрирован' 
+                    : 'Это имя пользователя уже занято'
+            });
         }
 
-        // Хеширование пароля
-        const hashedPassword = await bcrypt.hash(password, 10);
+        // Оптимизированное хеширование пароля (уменьшаем количество раундов)
+        const hashedPassword = await bcrypt.hash(password, 8);
 
-        // Создание нового пользователя
+        // Создание пользователя с оптимизированным сохранением
         const user = new User({
-            username: username.trim(),
-            email: email.toLowerCase(),
+            username: normalizedUsername,
+            email: normalizedEmail,
             password: hashedPassword
         });
 
-        await user.save();
+        // Параллельное сохранение пользователя и создание токена
+        const [savedUser] = await Promise.all([
+            user.save(),
+            Promise.resolve(jwt.sign(
+                { userId: user._id },
+                process.env.JWT_SECRET,
+                { expiresIn: '7d' }
+            ))
+        ]);
 
-        // Создание токена
-        const token = jwt.sign(
-            { userId: user._id },
-            process.env.JWT_SECRET,
-            { expiresIn: '7d' }
-        );
+        // Проверка времени выполнения
+        const executionTime = Date.now() - startTime;
+        console.log(`Время регистрации: ${executionTime}ms`);
+
+        // Если время выполнения приближается к лимиту, логируем предупреждение
+        if (executionTime > 8000) {
+            console.warn('Регистрация заняла слишком много времени:', executionTime);
+        }
 
         res.status(201).json({ 
             token, 
             user: {
-                id: user._id,
-                username: user.username,
-                email: user.email
+                id: savedUser._id,
+                username: savedUser.username,
+                email: savedUser.email
             }
         });
     } catch (error) {

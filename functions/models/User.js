@@ -8,14 +8,16 @@ const userSchema = new mongoose.Schema({
         unique: true,
         trim: true,
         minlength: 3,
-        maxlength: 32
+        maxlength: 32,
+        index: true
     },
     email: {
         type: String,
         required: true,
         unique: true,
         trim: true,
-        lowercase: true
+        lowercase: true,
+        index: true
     },
     password: {
         type: String,
@@ -28,7 +30,8 @@ const userSchema = new mongoose.Schema({
     }],
     createdAt: {
         type: Date,
-        default: Date.now
+        default: Date.now,
+        index: true
     },
     settings: {
         theme: {
@@ -42,15 +45,17 @@ const userSchema = new mongoose.Schema({
         }
     }
 }, {
-    timestamps: true
+    timestamps: true,
+    autoIndex: process.env.NODE_ENV !== 'production'
 });
 
-// Хеширование пароля перед сохранением
+userSchema.index({ email: 1, username: 1 });
+
 userSchema.pre('save', async function(next) {
     if (!this.isModified('password')) return next();
     
     try {
-        const salt = await bcrypt.genSalt(10);
+        const salt = await bcrypt.genSalt(8);
         this.password = await bcrypt.hash(this.password, salt);
         next();
     } catch (error) {
@@ -58,11 +63,21 @@ userSchema.pre('save', async function(next) {
     }
 });
 
-// Метод для проверки пароля
 userSchema.methods.comparePassword = async function(candidatePassword) {
     return bcrypt.compare(candidatePassword, this.password);
 };
 
+userSchema.methods.toSafeObject = function() {
+    return {
+        id: this._id,
+        username: this.username,
+        email: this.email,
+        createdAt: this.createdAt
+    };
+};
+
 const User = mongoose.model('User', userSchema);
+
+User.createIndexes().catch(console.error);
 
 module.exports = User; 
