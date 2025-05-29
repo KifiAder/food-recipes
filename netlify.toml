@@ -1,12 +1,12 @@
 [build]
-  command = "npm run build"
+  command = "npm install"
   publish = "."
   functions = "functions"
 
 [functions]
   external_node_modules = ["express", "mongoose", "jsonwebtoken", "bcryptjs", "cors"]
   node_bundler = "esbuild"
-  included_files = ["routes/**", "models/**", "middleware/**"]
+  included_files = ["routes/**/*", "models/**/*", "middleware/**/*"]
 
 [functions.timeout]
   duration = "30s"

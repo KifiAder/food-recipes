@@ -10,10 +10,11 @@
   "scripts": {
     "start": "netlify dev",
     "dev": "netlify dev",
-    "build": "npm install && netlify build",
+    "build": "netlify functions:build",
     "deploy": "netlify deploy --prod"
   },
   "dependencies": {
+    "@netlify/functions": "^2.0.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
     "dotenv": "^16.0.3",
@@ -24,7 +25,6 @@
   },
   "devDependencies": {
     "nodemon": "^2.0.22",
-    "@netlify/functions": "^2.0.0",
     "netlify-cli": "^15.0.0"
   }
 } 
