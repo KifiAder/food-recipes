@@ -1785,13 +1785,14 @@ body.accessibility-mode {
 }
 
 .modal-content {
-    background-color: #fefefe;
+    background-color: #fff;
     margin: 15% auto;
     padding: 20px;
     border-radius: 8px;
     width: 90%;
-    max-width: 500px;
+    max-width: 400px;
     position: relative;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
 }
 
 .close {
@@ -1801,27 +1802,30 @@ body.accessibility-mode {
     font-size: 28px;
     font-weight: bold;
     cursor: pointer;
+    color: #666;
 }
 
 /* Стили для вкладок */
 .auth-tabs {
     display: flex;
     margin-bottom: 20px;
-    border-bottom: 1px solid #ddd;
+    border-bottom: 2px solid #eee;
 }
 
 .tab-button {
-    padding: 10px 20px;
+    flex: 1;
+    padding: 10px;
     border: none;
     background: none;
-    cursor: pointer;
     font-size: 16px;
+    cursor: pointer;
     color: #666;
 }
 
 .tab-button.active {
-    color: #4CAF50;
-    border-bottom: 2px solid #4CAF50;
+    color: #FFD500;
+    border-bottom: 2px solid #FFD500;
+    margin-bottom: -2px;
 }
 
 /* Стили для форм */
@@ -1845,12 +1849,13 @@ body.accessibility-mode {
 .form-group label {
     display: block;
     margin-bottom: 5px;
-    color: #666;
+    color: #333;
+    font-weight: 500;
 }
 
 .form-group input {
     width: 100%;
-    padding: 8px;
+    padding: 10px;
     border: 1px solid #ddd;
     border-radius: 4px;
     font-size: 14px;
@@ -1858,42 +1863,70 @@ body.accessibility-mode {
 
 .submit-button {
     width: 100%;
-    padding: 10px;
-    background-color: #4CAF50;
-    color: white;
+    padding: 12px;
+    background-color: #FFD500;
     border: none;
     border-radius: 4px;
-    cursor: pointer;
+    color: #333;
     font-size: 16px;
-    margin-top: 10px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.3s;
 }
 
 .submit-button:hover {
-    background-color: #45a049;
+    background-color: #FFE44D;
 }
 
-/* Темная тема */
-.dark-theme .modal-content {
-    background-color: #333;
+/* Тёмная тема для модального окна */
+.dark-mode .modal-content {
+    background-color: #2C2C2C;
+    color: #fff;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+}
+
+.dark-mode .close {
     color: #fff;
 }
 
-.dark-theme .form-group label {
-    color: #ddd;
-}
-
-.dark-theme .form-group input {
-    background-color: #444;
-    border-color: #555;
+.dark-mode .auth-form h2 {
     color: #fff;
 }
 
-.dark-theme .tab-button {
-    color: #ddd;
+.dark-mode .form-group label {
+    color: #fff;
 }
 
-.dark-theme .tab-button.active {
-    color: #4CAF50;
+.dark-mode .form-group input {
+    background-color: #3C3C3C;
+    border-color: #4C4C4C;
+    color: #fff;
+}
+
+.dark-mode .form-group input::placeholder {
+    color: #888;
+}
+
+.dark-mode .tab-button {
+    color: #888;
+}
+
+.dark-mode .tab-button.active {
+    color: #FFD500;
+    border-bottom-color: #FFD500;
+}
+
+.dark-mode .auth-tabs {
+    border-bottom-color: #4C4C4C;
+}
+
+.dark-mode .submit-button {
+    background-color: #FFD500;
+    color: #333;
+}
+
+.dark-mode .submit-button:hover {
+    background-color: #FFE44D;
 }
 
 /* Режим доступности */

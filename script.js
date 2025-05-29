@@ -188,44 +188,86 @@ function filterRecipes(recipes, container) {
 }
 
 // Проверка, находится ли рецепт в избранном
-function isInFavorites(recipeId) {
+async function isInFavorites(recipeId) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        // Для неавторизованных пользователей используем локальное хранилище
     return favorites.includes(recipeId);
 }
 
-// Обновление текста кнопки избранного
-function updateFavoriteButton(recipeId) {
-    const favoriteBtn = document.getElementById('favoriteButton');
-    if (favoriteBtn) {
-        if (isInFavorites(recipeId)) {
-            favoriteBtn.textContent = 'Убрать из избранного';
-            favoriteBtn.classList.add('remove-favorite');
-        } else {
-            favoriteBtn.textContent = 'Добавить в избранное';
-            favoriteBtn.classList.remove('remove-favorite');
-        }
+    try {
+        const response = await fetch('/.netlify/functions/api/auth/profile', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        const user = await response.json();
+        return user.favorites.includes(recipeId);
+    } catch (error) {
+        console.error('Ошибка при проверке избранного:', error);
+        return favorites.includes(recipeId);
     }
 }
 
-// Переключение избранного
-function toggleFavorite() {
-    const params = new URLSearchParams(window.location.search);
-    const recipeId = params.get("recipe");
+// Обновление кнопки избранного
+async function updateFavoriteButton(recipeId) {
+    const button = document.querySelector(`.favorite-button[data-recipe="${recipeId}"]`);
+    const favoriteBtn = document.getElementById('favoriteButton');
+    const isFavorite = await isInFavorites(recipeId);
     
-    if (!recipeId) return;
-
-    if (isInFavorites(recipeId)) {
-        // Удаляем из избранного
-        const index = favorites.indexOf(recipeId);
-        favorites.splice(index, 1);
-        alert('Рецепт удалён из избранного');
-    } else {
-        // Добавляем в избранное
-        favorites.push(recipeId);
-        alert('Рецепт добавлен в избранное');
+    if (button) {
+        button.classList.toggle('active', isFavorite);
+        button.title = isFavorite ? 'Удалить из избранного' : 'Добавить в избранное';
     }
     
+    if (favoriteBtn) {
+        favoriteBtn.textContent = isFavorite ? 'Убрать из избранного' : 'Добавить в избранное';
+        favoriteBtn.classList.toggle('remove-favorite', isFavorite);
+    }
+}
+
+// Единая функция для переключения избранного
+async function toggleFavorite(recipeId, button = null) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        showNotification('Необходимо войти в аккаунт', 'error');
+        return;
+    }
+
+    try {
+        const isFavorite = await isInFavorites(recipeId);
+        const method = isFavorite ? 'DELETE' : 'POST';
+        
+        const response = await fetch(`/.netlify/functions/api/recipes/${recipeId}/favorite`, {
+            method,
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Ошибка при обновлении избранного');
+        }
+
+        // Обновляем локальное состояние
+        if (isFavorite) {
+        const index = favorites.indexOf(recipeId);
+            if (index !== -1) favorites.splice(index, 1);
+    } else {
+        favorites.push(recipeId);
+    }
     localStorage.setItem('favorites', JSON.stringify(favorites));
-    updateFavoriteButton(recipeId);
+
+        // Обновляем UI
+        await updateFavoriteButton(recipeId);
+        showNotification(
+            isFavorite ? 'Рецепт удален из избранного' : 'Рецепт добавлен в избранное',
+            'success'
+        );
+    } catch (error) {
+        console.error('Ошибка при обновлении избранного:', error);
+        showNotification(error.message, 'error');
+    }
 }
 
 // Функция для отображения деталей рецепта
@@ -755,11 +797,14 @@ function loadNavigation() {
                 initializeAfterNavLoad();
                 // Инициализируем модальное окно авторизации
                 loadAuthModal();
+                // Инициализируем счетчик посетителей
+                handleActiveVisitors();
             });
     } else {
         // Если нет плейсхолдера, значит навигация уже встроена в HTML
         initializeAfterNavLoad();
         loadAuthModal();
+        handleActiveVisitors();
     }
 }
 
@@ -853,178 +898,205 @@ function initAuthModal() {
 
 // Обработчик входа
 async function handleLogin(e) {
-    e.preventDefault();
-    const email = document.getElementById('loginEmail').value;
-    const password = document.getElementById('loginPassword').value;
+            e.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
 
-    try {
+            try {
         const response = await fetch('/.netlify/functions/api/auth/login', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ email, password })
-        });
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ email, password })
+                });
 
-        const data = await response.json();
+                const data = await response.json();
 
-        if (response.ok) {
-            localStorage.setItem('token', data.token);
-            localStorage.setItem('user', JSON.stringify(data.user));
-            showNotification('Вы успешно вошли в систему');
-            updateAuthUI();
+                if (response.ok) {
+                    localStorage.setItem('token', data.token);
+                    localStorage.setItem('user', JSON.stringify(data.user));
+                    showNotification('Вы успешно вошли в систему');
+                    updateAuthUI();
             document.getElementById('authModal').style.display = 'none';
-        } else {
-            showNotification(data.message || 'Ошибка при входе', 'error');
-        }
-    } catch (error) {
-        console.error('Ошибка при входе:', error);
-        showNotification('Произошла ошибка при входе', 'error');
+                } else {
+                    showNotification(data.message || 'Ошибка при входе', 'error');
+                }
+            } catch (error) {
+                console.error('Ошибка при входе:', error);
+                showNotification('Произошла ошибка при входе', 'error');
+            }
     }
-}
 
 // Обработчик регистрации
 async function handleRegister(e) {
-    e.preventDefault();
-    const username = document.getElementById('registerUsername').value;
-    const email = document.getElementById('registerEmail').value;
-    const password = document.getElementById('registerPassword').value;
-
+            e.preventDefault();
+            
     try {
-        const response = await fetch('/.netlify/functions/api/auth/register', {
-            method: 'POST',
+        const username = document.getElementById('registerName').value.trim();
+        const email = document.getElementById('registerEmail').value.trim();
+            const password = document.getElementById('registerPassword').value;
+
+        // Валидация на клиенте
+        if (!username || !email || !password) {
+            showNotification('Все поля обязательны для заполнения', 'error');
+            return;
+        }
+
+        if (username.length < 3) {
+            showNotification('Имя пользователя должно содержать минимум 3 символа', 'error');
+            return;
+        }
+
+        if (!email.includes('@')) {
+            showNotification('Введите корректный email адрес', 'error');
+            return;
+        }
+
+        if (password.length < 6) {
+            showNotification('Пароль должен содержать минимум 6 символов', 'error');
+            return;
+        }
+
+        const requestData = {
+            username,
+            email,
+            password
+        };
+
+        console.log('Отправляем данные:', JSON.stringify(requestData));
+
+        // Сначала делаем preflight запрос
+        const preflightResponse = await fetch('/.netlify/functions/api/auth/register', {
+            method: 'OPTIONS',
             headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ username, email, password })
+                'Access-Control-Request-Method': 'POST',
+                'Access-Control-Request-Headers': 'Content-Type, Accept',
+                'Origin': window.location.origin
+            }
         });
 
-        const data = await response.json();
+        console.log('Preflight ответ:', preflightResponse.status, preflightResponse.statusText);
 
-        if (response.ok) {
-            showNotification('Регистрация успешна! Теперь вы можете войти');
-            // Переключаемся на вкладку входа
-            const loginTab = document.querySelector('.tab-button[data-tab="login"]');
-            if (loginTab) loginTab.click();
-        } else {
-            showNotification(data.message || 'Ошибка при регистрации', 'error');
+        // Основной запрос
+        const response = await fetch('/.netlify/functions/api/auth/register', {
+                    method: 'POST',
+                    headers: {
+                'Content-Type': 'application/json',
+                'Accept': 'application/json',
+                'Origin': window.location.origin
+                    },
+            credentials: 'same-origin',
+            body: JSON.stringify(requestData)
+        });
+
+        console.log('Получен ответ:', response.status, response.statusText);
+        console.log('Заголовки ответа:', Object.fromEntries(response.headers.entries()));
+        
+        let data;
+        const responseText = await response.text();
+        console.log('Текст ответа:', responseText);
+        
+        try {
+            data = JSON.parse(responseText);
+            console.log('Разобранные данные:', data);
+        } catch (parseError) {
+            console.error('Ошибка при разборе ответа:', parseError);
+            throw new Error('Ошибка при обработке ответа сервера');
         }
-    } catch (error) {
-        console.error('Ошибка при регистрации:', error);
-        showNotification('Произошла ошибка при регистрации', 'error');
+
+        if (!response.ok || !data.success) {
+            throw new Error(data.message || 'Ошибка при регистрации');
+        }
+
+        // Сохраняем токен и данные пользователя
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('user', JSON.stringify(data.user));
+        
+        // Обновляем UI
+        showNotification('Регистрация успешна!');
+        updateAuthUI();
+        
+        // Закрываем модальное окно
+        const modal = document.getElementById('authModal');
+        if (modal) {
+            modal.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Ошибка при регистрации:', error);
+        showNotification(error.message || 'Ошибка при регистрации', 'error');
     }
 }
 
-// Функция для инициализации профиля после загрузки навигации
-function initializeAfterNavLoad() {
-    updateAuthUI();
-    initializeProfile();
-}
-
-// Инициализируем навигацию при загрузке страницы
-document.addEventListener('DOMContentLoaded', loadNavigation);
-
-// Инициализация страницы
-document.addEventListener('DOMContentLoaded', async () => {
-    console.log('Страница загружена');
-    
-    // Остальной код инициализации страницы...
-    const path = window.location.pathname.split('/').pop() || 'index.html';
-    console.log('Текущий путь:', path);
-    
-    // Обновляем часы каждую секунду
+// Функция инициализации страницы
+function initializePage() {
+    // Обновляем часы
     updateClock();
-    setInterval(updateClock, 1000);
+    const clockInterval = setInterval(updateClock, 1000);
 
-    // Инициализируем систему подсчета посетителей
-    handleActiveVisitors();
-    
-    // --- Тёмная тема ---
+    // Инициализируем тему
     const themeToggle = document.querySelector('.theme-toggle');
     if (themeToggle) {
-        // Установить тему и эмодзи при загрузке
-        if (localStorage.getItem('theme') === 'dark') {
-            document.body.classList.add('dark-mode');
-            themeToggle.innerHTML = '☀︎';
-        } else {
-            themeToggle.innerHTML = '⏾';
-        }
+        const isDarkMode = localStorage.getItem('theme') === 'dark';
+        document.body.classList.toggle('dark-mode', isDarkMode);
+        themeToggle.innerHTML = isDarkMode ? '☀︎' : '⏾';
+        
         themeToggle.addEventListener('click', function() {
-            document.body.classList.toggle('dark-mode');
-            const isDark = document.body.classList.contains('dark-mode');
+            const isDark = document.body.classList.toggle('dark-mode');
             localStorage.setItem('theme', isDark ? 'dark' : 'light');
             themeToggle.innerHTML = isDark ? '☀︎' : '⏾';
         });
     }
 
-    // Инициализация формы обратной связи
-    const feedbackForm = document.getElementById('feedback-form');
-    if (feedbackForm) {
-        feedbackForm.addEventListener('submit', sendEmail);
-    }
+    // Инициализируем счетчик посетителей
+    handleActiveVisitors();
+
+    // Очищаем интервалы при уходе со страницы
+    window.addEventListener('unload', () => {
+        clearInterval(clockInterval);
+    });
+}
+
+// Инициализация после загрузки навигации
+function initializeAfterNavLoad() {
+    updateAuthUI();
+    initializeProfile();
+    initializePage();
+}
+
+// Инициализация при загрузке страницы
+document.addEventListener('DOMContentLoaded', () => {
+    loadNavigation();
     
+    // Определяем текущую страницу
+    const path = window.location.pathname.split('/').pop() || 'index.html';
+    console.log('Текущий путь:', path);
+    
+    // Инициализируем специфичный для страницы функционал
     switch (path) {
         case 'index.html':
         case '':
-            await displayHomePageRecipes();
+            displayHomePageRecipes();
             break;
         case 'catalog.html':
-            await displayCatalogRecipes();
-            break;
-        case 'recipe.html':
-            const urlParams = new URLSearchParams(window.location.search);
-            const recipeId = urlParams.get('recipe');
-            if (recipeId) {
-                showRecipeDetails(recipeId);
-            }
+            displayCatalogRecipes();
             break;
         case 'favorite.html':
-            await loadFavoriteRecipes();
+            loadFavoriteRecipes();
             break;
         case 'add-recipe.html':
-            console.log('Страница добавления рецепта');
             const form = document.getElementById('recipe-form');
-            console.log('Найдена форма:', !!form);
             if (form) {
-                console.log('Добавляем обработчик события submit');
-                form.addEventListener('submit', (event) => {
-                    console.log('Форма отправлена');
-                    handleAddRecipe(event);
-                });
+                form.addEventListener('submit', handleAddRecipe);
             }
             break;
     }
 
-    // --- Обработка формы регистрации ---
-    const registerForm = document.getElementById('registerForm');
-    if (registerForm) {
-        registerForm.addEventListener('submit', async function(e) {
-            e.preventDefault();
-            const name = document.getElementById('registerName').value.trim();
-            const email = document.getElementById('registerEmail').value.trim();
-            const password = document.getElementById('registerPassword').value;
-
-            try {
-                const response = await fetch('/.netlify/functions/api/auth/register', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ name, email, password })
-                });
-                const data = await response.json();
-                if (response.ok) {
-                    alert('Регистрация успешна! Теперь вы можете войти.');
-                    // Переключаемся на вкладку входа
-                    document.querySelector('.tab-button[data-tab="login"]').click();
-                    registerForm.reset();
-                } else {
-                    alert(data.message || 'Ошибка регистрации');
-                }
-            } catch (err) {
-                alert('Ошибка сети или сервера. Попробуйте позже.');
-            }
-            });
+    // Проверяем URL на наличие параметра рецепта
+    const urlParams = new URLSearchParams(window.location.search);
+    const recipeId = urlParams.get('recipe');
+    if (recipeId) {
+        showRecipeDetails(recipeId);
     }
 });
 
@@ -1047,7 +1119,7 @@ async function getRecipeReviews(recipeId) {
     } catch (error) {
         console.error('Ошибка при получении отзывов:', error);
         return [];
-    }
+}
 }
 
 async function saveRecipeReview(recipeId, review) {
@@ -1081,7 +1153,7 @@ async function renderRecipeReviews(recipeId) {
     
     try {
         const reviews = await getRecipeReviews(recipeId);
-        reviewsList.innerHTML = reviews.length
+    reviewsList.innerHTML = reviews.length
             ? reviews.map(r => `
                 <li class="review-item">
                     <div class="review-header">
@@ -1091,7 +1163,7 @@ async function renderRecipeReviews(recipeId) {
                     <div class="review-text">${r.text}</div>
                 </li>
             `).join('')
-            : '<li>Пока нет отзывов. Будьте первым!</li>';
+        : '<li>Пока нет отзывов. Будьте первым!</li>';
     } catch (error) {
         console.error('Ошибка при отображении отзывов:', error);
         reviewsList.innerHTML = '<li>Ошибка при загрузке отзывов</li>';
@@ -1119,7 +1191,7 @@ function setupReviewForm(recipeId) {
 
         try {
             await saveRecipeReview(recipeId, { text });
-            form.reset();
+        form.reset();
             await renderRecipeReviews(recipeId);
             showNotification('Отзыв успешно добавлен', 'success');
         } catch (error) {
@@ -1187,7 +1259,7 @@ function updateAuthUI() {
         // Пользователь не авторизован
         if (authButton) authButton.style.display = 'block';
         if (userProfile) userProfile.style.display = 'none';
-    }
+}
 
     // Диспатчим событие для обновления UI
     window.dispatchEvent(new Event('userAuthChanged'));
@@ -1243,91 +1315,3 @@ document.addEventListener('DOMContentLoaded', () => {
     updateAuthUI();
     initializeProfile();
 });
-
-async function addToFavorites(recipeId) {
-    const token = localStorage.getItem('token');
-    if (!token) {
-        showNotification('Необходимо войти в аккаунт', 'error');
-        return;
-    }
-
-    try {
-        const response = await fetch(`/.netlify/functions/api/recipes/${recipeId}/favorite`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error('Ошибка при добавлении в избранное');
-        }
-
-        showNotification('Рецепт добавлен в избранное', 'success');
-        updateFavoriteButton(recipeId);
-    } catch (error) {
-        showNotification(error.message, 'error');
-    }
-}
-
-async function removeFromFavorites(recipeId) {
-    const token = localStorage.getItem('token');
-    if (!token) {
-        showNotification('Необходимо войти в аккаунт', 'error');
-        return;
-    }
-
-    try {
-        const response = await fetch(`/.netlify/functions/api/recipes/${recipeId}/favorite`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-
-        if (!response.ok) {
-            throw new Error('Ошибка при удалении из избранного');
-        }
-
-        showNotification('Рецепт удален из избранного', 'success');
-        updateFavoriteButton(recipeId);
-    } catch (error) {
-        showNotification(error.message, 'error');
-    }
-}
-
-async function isInFavorites(recipeId) {
-    const token = localStorage.getItem('token');
-    if (!token) return false;
-
-    try {
-        const response = await fetch('/.netlify/functions/api/auth/profile', {
-            headers: {
-                'Authorization': `Bearer ${token}`
-            }
-        });
-        const user = await response.json();
-        return user.favorites.includes(recipeId);
-    } catch (error) {
-        console.error('Ошибка при проверке избранного:', error);
-        return false;
-    }
-}
-
-async function updateFavoriteButton(recipeId) {
-    const button = document.querySelector(`.favorite-button[data-recipe="${recipeId}"]`);
-    if (!button) return;
-
-    const isFavorite = await isInFavorites(recipeId);
-    button.classList.toggle('active', isFavorite);
-    button.title = isFavorite ? 'Удалить из избранного' : 'Добавить в избранное';
-}
-
-async function toggleFavorite(recipeId) {
-    const isFavorite = await isInFavorites(recipeId);
-    if (isFavorite) {
-        await removeFromFavorites(recipeId);
-    } else {
-        await addToFavorites(recipeId);
-    }
-}

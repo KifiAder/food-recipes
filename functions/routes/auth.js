@@ -2,8 +2,8 @@ const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
-const User = require('../models/User');
-const auth = require('../middleware/auth');
+const User = require('../models/User.js');
+const auth = require('../middleware/auth.js');
 
 // Валидация данных пользователя
 const validateUserData = (data) => {
@@ -26,14 +26,23 @@ const validateUserData = (data) => {
 
 // Регистрация
 router.post('/register', async (req, res) => {
+    console.log('Получен запрос на регистрацию:', {
+        body: req.body,
+        headers: req.headers,
+        url: req.url,
+        method: req.method
+    });
+
     try {
-        const startTime = Date.now();
         const { username, email, password } = req.body;
 
-        // Быстрая предварительная валидация
+        // Проверяем наличие всех полей
         if (!username || !email || !password) {
+            console.log('Отсутствуют обязательные поля:', { username: !!username, email: !!email, password: !!password });
             return res.status(400).json({ 
-                message: 'Все поля обязательны для заполнения'
+                success: false,
+                message: 'Все поля обязательны для заполнения',
+                fields: { username: !!username, email: !!email, password: !!password }
             });
         }
 
@@ -41,64 +50,68 @@ router.post('/register', async (req, res) => {
         const normalizedEmail = email.toLowerCase().trim();
         const normalizedUsername = username.trim();
 
-        // Параллельное выполнение валидации и проверки существующего пользователя
-        const [validationErrors, existingUser] = await Promise.all([
-            Promise.resolve(validateUserData({ username: normalizedUsername, email: normalizedEmail, password })),
-            User.findOne({ 
-                $or: [
-                    { email: normalizedEmail },
-                    { username: normalizedUsername }
-                ]
-            }).lean() // Используем lean() для более быстрого запроса
-        ]);
+        // Валидация данных
+        const validationErrors = validateUserData({ 
+            username: normalizedUsername, 
+            email: normalizedEmail, 
+            password 
+        });
 
-        // Проверка результатов валидации
         if (validationErrors.length > 0) {
+            console.log('Ошибки валидации:', validationErrors);
             return res.status(400).json({ 
-                message: 'Ошибка валидации',
+                success: false,
+                message: validationErrors[0],
                 errors: validationErrors 
             });
         }
 
         // Проверка существующего пользователя
+        const existingUser = await User.findOne({ 
+            $or: [
+                { email: normalizedEmail },
+                { username: normalizedUsername }
+            ]
+        }).lean();
+
         if (existingUser) {
+            console.log('Пользователь уже существует:', { 
+                email: existingUser.email === normalizedEmail,
+                username: existingUser.username === normalizedUsername 
+            });
             return res.status(400).json({ 
+                success: false,
                 message: existingUser.email === normalizedEmail 
                     ? 'Этот email уже зарегистрирован' 
                     : 'Это имя пользователя уже занято'
             });
         }
 
-        // Оптимизированное хеширование пароля (уменьшаем количество раундов)
-        const hashedPassword = await bcrypt.hash(password, 8);
+        // Хеширование пароля с меньшим количеством раундов
+        const salt = await bcrypt.genSalt(10);
+        const hashedPassword = await bcrypt.hash(password, salt);
 
-        // Создание пользователя с оптимизированным сохранением
+        // Создание пользователя
         const user = new User({
             username: normalizedUsername,
             email: normalizedEmail,
             password: hashedPassword
         });
 
-        // Параллельное сохранение пользователя и создание токена
-        const [savedUser] = await Promise.all([
-            user.save(),
-            Promise.resolve(jwt.sign(
-                { userId: user._id },
-                process.env.JWT_SECRET,
-                { expiresIn: '7d' }
-            ))
-        ]);
+        // Сохраняем пользователя
+        const savedUser = await user.save();
+        console.log('Пользователь сохранен:', savedUser._id);
 
-        // Проверка времени выполнения
-        const executionTime = Date.now() - startTime;
-        console.log(`Время регистрации: ${executionTime}ms`);
+        // Создаем токен
+        const token = jwt.sign(
+            { userId: savedUser._id },
+            process.env.JWT_SECRET,
+            { expiresIn: '7d' }
+        );
 
-        // Если время выполнения приближается к лимиту, логируем предупреждение
-        if (executionTime > 8000) {
-            console.warn('Регистрация заняла слишком много времени:', executionTime);
-        }
-
-        res.status(201).json({ 
+        // Отправляем ответ
+        return res.status(201).json({ 
+            success: true,
             token, 
             user: {
                 id: savedUser._id,
@@ -108,7 +121,8 @@ router.post('/register', async (req, res) => {
         });
     } catch (error) {
         console.error('Ошибка при регистрации:', error);
-        res.status(500).json({ 
+        return res.status(500).json({ 
+            success: false,
             message: 'Ошибка при регистрации пользователя',
             error: process.env.NODE_ENV === 'development' ? error.message : undefined
         });

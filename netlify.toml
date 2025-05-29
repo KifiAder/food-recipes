@@ -3,6 +3,10 @@
   publish = "."
   functions = "functions"
 
+[dev]
+  functions = "functions"
+  publish = "."
+
 [functions]
   external_node_modules = ["express", "mongoose", "jsonwebtoken", "bcryptjs", "cors"]
   node_bundler = "esbuild"
@@ -19,8 +23,20 @@
   from = "/api/*"
   to = "/.netlify/functions/api/:splat"
   status = 200
+  force = true
+  methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+  headers = {Access-Control-Allow-Origin = "*"}
+
+[[redirects]]
+  from = "/.netlify/functions/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+  force = true
+  methods = ["GET", "POST", "PUT", "DELETE", "OPTIONS"]
+  headers = {Access-Control-Allow-Origin = "*"}
 
 [[redirects]]
   from = "/*"
   to = "/index.html"
-  status = 200 
+  status = 200
+  force = true 
