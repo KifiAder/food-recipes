@@ -58,3 +58,18 @@ recipeSchema.virtual('averageRating').get(function() {
 const Recipe = mongoose.model('Recipe', recipeSchema);
 
 module.exports = Recipe; 
+        type: Date,
+        default: Date.now
+    }
+});
+
+// Виртуальное поле для подсчета среднего рейтинга из отзывов
+recipeSchema.virtual('averageRating').get(function() {
+    if (!this.reviews || this.reviews.length === 0) return this.rating;
+    const sum = this.reviews.reduce((acc, review) => acc + review.rating, 0);
+    return Math.round(sum / this.reviews.length);
+});
+
+const Recipe = mongoose.model('Recipe', recipeSchema);
+
+module.exports = Recipe; 

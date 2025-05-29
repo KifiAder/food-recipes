@@ -303,10 +303,10 @@ async function showRecipeDetails(recipeId) {
                     <h2>Отзывы</h2>
                     <ul id="reviews-list"></ul>
                     ${localStorage.getItem('token') ? `
-                        <form id="review-form">
-                            <textarea id="review-text" placeholder="Ваш отзыв" required maxlength="300"></textarea>
-                            <button type="submit">Оставить отзыв</button>
-                        </form>
+                    <form id="review-form">
+                        <textarea id="review-text" placeholder="Ваш отзыв" required maxlength="300"></textarea>
+                        <button type="submit">Оставить отзыв</button>
+                    </form>
                     ` : `
                         <div class="login-to-review">
                             Чтобы оставить отзыв, необходимо <button class="auth-button">войти</button> в аккаунт
@@ -1040,7 +1040,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             } catch (err) {
                 alert('Ошибка сети или сервера. Попробуйте позже.');
             }
-        });
+            });
     }
 });
 
@@ -1165,7 +1165,7 @@ function updateAuthUI() {
         // Пользователь не авторизован
         if (authButton) authButton.style.display = 'block';
         if (userProfile) userProfile.style.display = 'none';
-    }
+}
 
     // Диспатчим событие для обновления UI
     window.dispatchEvent(new Event('userAuthChanged'));
