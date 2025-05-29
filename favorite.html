@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="assets/logo.png">
+    <title>Cook's Manuscript - Избранное</title>
+</head>
+<body>
+    <div id="nav-placeholder"></div>
+
+    <main class="container">
+        <h1>Избранные рецепты</h1>
+        <div id="recipes-list" class="recipes-grid"></div>
+
+        <div id="recipe-details" class="recipe-detail" style="display: none;">
+            <button class="back-button" onclick="hideRecipeDetails()">← Назад к списку</button>
+            <h1 id="recipe-name"></h1>
+            <img id="recipe-img" src="" alt="">
+            <div id="recipe-rating"></div>
+            <button id="favoriteButton" onclick="toggleFavorite()" class="button">Убрать из избранного</button>
+            
+            <div class="ingredients-section">
+                <h2>Ингредиенты:</h2>
+                <ul id="ingredient-list"></ul>
+            </div>
+            
+            <div class="instructions-section">
+                <h2>Инструкция по приготовлению:</h2>
+                <ol id="instruction-steps"></ol>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <nav class="footer-nav">
+                <a href="about.html#feedback">Обратная связь</a>
+                <a href="privacy-policy.html">Политика конфиденциальности</a>
+                <a href="sitemap.html">Карта сайта</a>
+            </nav>
+        </div>
+    </footer>
+
+    <div class="scroll-to-top"></div>
+    <div id="auth-modal-container"></div>
+
+    <script>
+        // Загружаем навигацию
+        fetch('nav.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('nav-placeholder').innerHTML = data;
+                // После загрузки навигации инициализируем UI авторизации
+                updateAuthUI();
+            });
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>

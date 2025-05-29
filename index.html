@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="assets/logo.png">
+    <title>Cook's Manuscript - Главная</title>
+</head>
+<body>
+    <header class="app-bar">
+        <div class="logo-container">
+            <a href="index.html" class="logo">
+                <img src="assets/logo.png" alt="Логотип">
+                Cook's Manuscript
+            </a>
+            <div id="clock"></div>
+            <button class="accessibility-toggle" aria-label="Режим для слабовидящих">👁</button>
+        </div>
+        <nav class="menu">
+            <ul>
+                <li><a href="index.html">🏠 Главная</a></li>
+                <li><a href="catalog.html">📕 Каталог</a></li>
+                <li><a href="about.html">❓ О нас</a></li>
+                <li><a href="favorite.html">❤️ Избранное</a></li>
+            </ul>
+        </nav>
+        <div class="right-section">
+            <button class="theme-toggle" aria-label="Тёмная тема">⏾</button>
+            <div id="visitor-counter"></div>
+            <a href="add-recipe.html" class="add-recipe-btn">Добавить свой рецепт</a>
+            <button class="auth-button">Войти</button>
+            <div class="user-profile">
+                <button class="profile-button">
+                    <div class="avatar"></div>
+                    <span class="username"></span>
+                </button>
+                <div class="profile-menu">
+                    <div class="profile-menu-item logout" onclick="logout()">
+                        <span>Выйти</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="container">
+        <div id="recipes-container">
+            <section id="popular-section">
+                <h2>Популярные рецепты</h2>
+                <div id="popular-recipes" class="recipes-grid"></div>
+            </section>
+
+            <section id="best-section">
+                <h2>Лучшие рецепты</h2>
+                <div id="best-recipes" class="recipes-grid"></div>
+            </section>
+        </div>
+
+        <div id="recipe-details" class="recipe-detail" style="display: none;">
+            <button class="back-button" onclick="hideRecipeDetails()">← Назад к списку</button>
+            <h1 id="recipe-name"></h1>
+            <img id="recipe-img" src="" alt="">
+            <div id="recipe-rating"></div>
+            <button id="favoriteButton" onclick="toggleFavorite()" class="button">Добавить в избранное</button>
+            
+            <div class="ingredients-section">
+                <h2>Ингредиенты:</h2>
+                <ul id="ingredient-list"></ul>
+            </div>
+            
+            <div class="instructions-section">
+                <h2>Инструкция по приготовлению:</h2>
+                <ol id="instruction-steps"></ol>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <nav class="footer-nav">
+                <a href="about.html#feedback">Обратная связь</a>
+                <a href="privacy-policy.html">Политика конфиденциальности</a>
+                <a href="sitemap.html">Карта сайта</a>
+            </nav>
+        </div>
+    </footer>
+    <div class="scroll-to-top"></div>
+    <div id="auth-modal-container"></div>
+    <script src="script.js"></script>
+</body>
+</html>

@@ -1,0 +1,76 @@
+<header class="app-bar">
+    <div class="logo-container">
+        <a href="index.html" class="logo">
+            <img src="assets/logo.png" alt="Логотип">
+            Cook's Manuscript
+        </a>
+        <div id="clock"></div>
+        <button class="accessibility-toggle" aria-label="Режим для слабовидящих">👁</button>
+    </div>
+    <nav class="menu">
+        <ul>
+            <li><a href="index.html">🏠 Главная</a></li>
+            <li><a href="catalog.html">📕 Каталог</a></li>
+            <li><a href="about.html">❓ О нас</a></li>
+            <li><a href="favorite.html">❤️ Избранное</a></li>
+        </ul>
+    </nav>
+    <div class="right-section">
+        <button class="theme-toggle" aria-label="Тёмная тема">⏾</button>
+        <div id="visitor-counter"></div>
+        <a href="add-recipe.html" class="add-recipe-btn">Добавить свой рецепт</a>
+        <button class="auth-button">Войти</button>
+        <div class="user-profile">
+            <button class="profile-button">
+                <div class="avatar"></div>
+                <span class="username"></span>
+            </button>
+            <div class="profile-menu">
+                <div class="profile-menu-item logout" onclick="logout()">
+                    <span>Выйти</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</header>
+
+<!-- Модальное окно авторизации -->
+<div id="authModal" class="modal">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <div class="auth-tabs">
+            <button class="tab-button active" data-tab="login">Вход</button>
+            <button class="tab-button" data-tab="register">Регистрация</button>
+        </div>
+        
+        <form id="loginForm" class="auth-form active">
+            <h2>Вход</h2>
+            <div class="form-group">
+                <label for="loginEmail">Email:</label>
+                <input type="email" id="loginEmail" required>
+            </div>
+            <div class="form-group">
+                <label for="loginPassword">Пароль:</label>
+                <input type="password" id="loginPassword" required>
+            </div>
+            <button type="submit" class="submit-button">Войти</button>
+        </form>
+
+        <form id="registerForm" class="auth-form">
+            <h2>Регистрация</h2>
+            <div class="form-group">
+                <label for="registerUsername">Имя пользователя:</label>
+                <input type="text" id="registerUsername" required>
+            </div>
+            <div class="form-group">
+                <label for="registerEmail">Email:</label>
+                <input type="email" id="registerEmail" required>
+            </div>
+            <div class="form-group">
+                <label for="registerPassword">Пароль:</label>
+                <input type="password" id="registerPassword" required>
+            </div>
+            <button type="submit" class="submit-button">Зарегистрироваться</button>
+        </form>
+    </div>
+</div> 

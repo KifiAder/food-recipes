@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="assets/logo.png">
+    <title>Cook's Manuscript - Добавить рецепт</title>
+</head>
+<body>
+    <div id="nav-placeholder"></div>
+
+    <main class="container">
+        <div id="auth-message" class="auth-message" style="display: none;">
+            <p>Для добавления рецепта необходимо войти в аккаунт</p>
+            <button class="auth-button" onclick="document.querySelector('.auth-button').click()">Войти</button>
+        </div>
+
+        <form id="recipe-form" class="recipe-form" style="display: none;">
+            <h1>Добавить новый рецепт</h1>
+            
+            <div class="form-group">
+                <label for="recipe-name">Название блюда:</label>
+                <input type="text" id="recipe-name" required maxlength="100">
+            </div>
+            
+            <div class="form-group">
+                <label for="recipe-image">Фотография блюда:</label>
+                <input type="file" id="recipe-image" accept="image/*" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="recipe-ingredients">Ингредиенты (каждый с новой строки):</label>
+                <textarea id="recipe-ingredients" required placeholder="Например:&#10;2 яйца&#10;200г муки&#10;1 стакан молока"></textarea>
+            </div>
+            
+            <div class="form-group">
+                <label for="recipe-steps">Шаги приготовления (каждый с новой строки):</label>
+                <textarea id="recipe-steps" required placeholder="Например:&#10;1. Взбить яйца&#10;2. Добавить муку&#10;3. Влить молоко"></textarea>
+            </div>
+            
+            <button type="submit" class="button">Добавить рецепт</button>
+        </form>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <nav class="footer-nav">
+                <a href="about.html#feedback">Обратная связь</a>
+                <a href="privacy-policy.html">Политика конфиденциальности</a>
+                <a href="sitemap.html">Карта сайта</a>
+            </nav>
+        </div>
+    </footer>
+
+    <div class="scroll-to-top"></div>
+    <div id="auth-modal-container"></div>
+
+    <script>
+        // Загружаем навигацию
+        fetch('nav.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('nav-placeholder').innerHTML = data;
+                // После загрузки навигации инициализируем UI авторизации
+                updateAuthUI();
+                // Проверяем авторизацию для формы
+                checkAuthForRecipeForm();
+            });
+
+        function checkAuthForRecipeForm() {
+            const form = document.getElementById('recipe-form');
+            const authMessage = document.getElementById('auth-message');
+            const token = localStorage.getItem('token');
+            const user = JSON.parse(localStorage.getItem('user'));
+
+            if (token && user) {
+                form.style.display = 'block';
+                authMessage.style.display = 'none';
+            } else {
+                form.style.display = 'none';
+                authMessage.style.display = 'block';
+            }
+        }
+
+        // Добавляем слушатель события авторизации
+        window.addEventListener('userAuthChanged', checkAuthForRecipeForm);
+    </script>
+    <script src="script.js"></script>
+</body>
+</html> 

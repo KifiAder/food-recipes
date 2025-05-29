@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <link rel="icon" type="image/png" href="assets/logo.png">
+    <title>Cook's Manuscript - О нас</title>
+    <script src="https://cdn.emailjs.com/dist/email.min.js"></script>
+    <script>
+        (function() {
+            emailjs.init("YOUR_USER_ID");
+        })();
+    </script>
+</head>
+<body>
+    <div id="nav-placeholder"></div>
+
+    <main class="container">
+        <section class="about-section">
+            <h1>О нас</h1>
+            <div class="about-text">
+                <p>Cook's Manuscript - это ваш надежный помощник в мире кулинарии. Мы создали эту платформу для всех, кто любит готовить и делиться своими кулинарными шедеврами.</p>
+                <p>Наша миссия - сделать процесс приготовления пищи доступным и увлекательным для каждого. Здесь вы найдете:</p>
+                <ul>
+                    <li>Тщательно отобранные рецепты от опытных поваров</li>
+                    <li>Подробные пошаговые инструкции</li>
+                    <li>Возможность делиться своими рецептами</li>
+                    <li>Удобную систему поиска и фильтрации</li>
+                    <li>Возможность сохранять любимые рецепты</li>
+                </ul>
+            </div>
+        </section>
+
+        <section id="feedback" class="contact-form-section">
+            <h2>Обратная связь</h2>
+            <form id="feedback-form" class="contact-form" onsubmit="sendEmail(event)">
+                <div class="form-group">
+                    <label for="name">Ваше имя:</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+                <div class="form-group">
+                    <label for="email">Email:</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+                <div class="form-group">
+                    <label for="subject">Тема:</label>
+                    <input type="text" id="subject" name="subject" required>
+                </div>
+                <div class="form-group">
+                    <label for="message">Сообщение:</label>
+                    <textarea id="message" name="message" required></textarea>
+                </div>
+                <button type="submit">Отправить</button>
+            </form>
+        </section>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <nav class="footer-nav">
+                <a href="about.html#feedback">Обратная связь</a>
+                <a href="privacy-policy.html">Политика конфиденциальности</a>
+                <a href="sitemap.html">Карта сайта</a>
+            </nav>
+        </div>
+    </footer>
+
+    <div class="scroll-to-top"></div>
+    <div id="auth-modal-container"></div>
+
+    <script>
+        // Загружаем навигацию
+        fetch('nav.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('nav-placeholder').innerHTML = data;
+                // После загрузки навигации инициализируем UI авторизации
+                updateAuthUI();
+            });
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>

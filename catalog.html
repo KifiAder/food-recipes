@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="catalog.css">
+    <link rel="icon" type="image/png" href="assets/logo.png">
+    <title>Cook's Manuscript - Каталог рецептов</title>
+</head>
+<body>
+    <div id="nav-placeholder"></div>
+
+    <main class="container catalog">
+        <div class="sidebar">
+            <form id="filter-form">
+                <input type="text" id="search-input" placeholder="Поиск рецептов...">
+                <div class="filter-section">
+                    <h3>Рейтинг</h3>
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="rating" value="5"> 5 звезд
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="rating" value="4"> 4 звезды
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="rating" value="3"> 3 звезды
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="rating" value="2"> 2 звезды
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="rating" value="1"> 1 звезда
+                        </label>
+                    </div>
+                </div>
+                <div class="filter-section">
+                    <h3>Тип блюда</h3>
+                    <div class="checkbox-group">
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="type" value="main"> Основные блюда
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="type" value="soup"> Супы
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="type" value="salad"> Салаты
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="type" value="dessert"> Десерты
+                        </label>
+                        <label class="checkbox-label">
+                            <input type="checkbox" name="type" value="drink"> Напитки
+                        </label>
+                    </div>
+                </div>
+                <button type="submit">Применить фильтры</button>
+                <button type="button" id="reset-filters">Сбросить фильтры</button>
+            </form>
+        </div>
+
+        <div class="content">
+            <div id="recipes-list" class="recipes-grid"></div>
+
+            <div id="recipe-details" class="recipe-detail" style="display: none;">
+                <button class="back-button" onclick="hideRecipeDetails()">← Назад к списку</button>
+                <h1 id="recipe-name"></h1>
+                <img id="recipe-img" src="" alt="">
+                <div id="recipe-rating"></div>
+                <button id="favoriteButton" onclick="toggleFavorite()" class="button">Добавить в избранное</button>
+                
+                <div class="ingredients-section">
+                    <h2>Ингредиенты:</h2>
+                    <ul id="ingredient-list"></ul>
+                </div>
+                
+                <div class="instructions-section">
+                    <h2>Инструкция по приготовлению:</h2>
+                    <ol id="instruction-steps"></ol>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <nav class="footer-nav">
+                <a href="about.html#feedback">Обратная связь</a>
+                <a href="privacy-policy.html">Политика конфиденциальности</a>
+                <a href="sitemap.html">Карта сайта</a>
+            </nav>
+        </div>
+    </footer>
+
+    <div class="scroll-to-top"></div>
+    <div id="auth-modal-container"></div>
+
+    <script>
+        // Загружаем навигацию
+        fetch('nav.html')
+            .then(response => response.text())
+            .then(data => {
+                document.getElementById('nav-placeholder').innerHTML = data;
+                // После загрузки навигации инициализируем UI авторизации
+                updateAuthUI();
+            });
+    </script>
+    <script src="script.js"></script>
+</body>
+</html>
