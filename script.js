@@ -830,7 +830,7 @@ function initAuthModal() {
             const password = document.getElementById('loginPassword').value;
 
             try {
-                const response = await fetch('/api/auth/login', {
+                const response = await fetch('/.netlify/functions/api/auth/login', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -871,7 +871,7 @@ function initAuthModal() {
             console.log('Данные для регистрации:', { name, email });
 
             try {
-                const response = await fetch('/api/auth/register', {
+                const response = await fetch('/.netlify/functions/api/auth/register', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -1021,7 +1021,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             const password = document.getElementById('registerPassword').value;
 
             try {
-                const response = await fetch('/api/auth/register', {
+                const response = await fetch('/.netlify/functions/api/auth/register', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json'
@@ -1055,32 +1055,70 @@ window.addEventListener('DOMContentLoaded', adjustBodyPadding);
 window.addEventListener('resize', adjustBodyPadding);
 
 // --- ОТЗЫВЫ ДЛЯ РЕЦЕПТА ---
-function getRecipeReviews(recipeId) {
-    const allReviews = JSON.parse(localStorage.getItem('recipeReviews') || '{}');
-    return allReviews[recipeId] || [];
+async function getRecipeReviews(recipeId) {
+    try {
+        const response = await fetch(`/.netlify/functions/api/reviews/recipe/${recipeId}`);
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('Ошибка при получении отзывов:', error);
+        return [];
+    }
 }
 
-function saveRecipeReview(recipeId, review) {
-    const allReviews = JSON.parse(localStorage.getItem('recipeReviews') || '{}');
-    if (!allReviews[recipeId]) allReviews[recipeId] = [];
-    allReviews[recipeId].push(review);
-    localStorage.setItem('recipeReviews', JSON.stringify(allReviews));
+async function saveRecipeReview(recipeId, review) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        throw new Error('Необходима авторизация');
+    }
+
+    try {
+        const response = await fetch('/.netlify/functions/api/reviews', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({
+                recipe: recipeId,
+                ...review
+            })
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Ошибка при сохранении отзыва:', error);
+        throw error;
+    }
 }
 
-function renderRecipeReviews(recipeId) {
+async function renderRecipeReviews(recipeId) {
     const reviewsList = document.getElementById('reviews-list');
     if (!reviewsList) return;
-    const reviews = getRecipeReviews(recipeId);
-    reviewsList.innerHTML = reviews.length
-        ? reviews.map(r => `<li><b>${r.author}</b>: ${r.text}</li>`).join('')
-        : '<li>Пока нет отзывов. Будьте первым!</li>';
+    
+    try {
+        const reviews = await getRecipeReviews(recipeId);
+        reviewsList.innerHTML = reviews.length
+            ? reviews.map(r => `
+                <li class="review-item">
+                    <div class="review-header">
+                        <b>${r.author.username || 'Пользователь'}</b>
+                        <span class="review-date">${new Date(r.createdAt).toLocaleDateString()}</span>
+                    </div>
+                    <div class="review-text">${r.text}</div>
+                </li>
+            `).join('')
+            : '<li>Пока нет отзывов. Будьте первым!</li>';
+    } catch (error) {
+        console.error('Ошибка при отображении отзывов:', error);
+        reviewsList.innerHTML = '<li>Ошибка при загрузке отзывов</li>';
+    }
 }
 
 function setupReviewForm(recipeId) {
     const form = document.getElementById('review-form');
     if (!form) return;
 
-    form.onsubmit = function(e) {
+    form.onsubmit = async function(e) {
         e.preventDefault();
 
         // Проверяем авторизацию
@@ -1095,14 +1133,14 @@ function setupReviewForm(recipeId) {
         const text = form.querySelector('#review-text').value.trim();
         if (!text) return;
 
-        saveRecipeReview(recipeId, { 
-            author: user.username, 
-            text: text 
-        });
-        
-        form.reset();
-        renderRecipeReviews(recipeId);
-        showNotification('Отзыв успешно добавлен', 'success');
+        try {
+            await saveRecipeReview(recipeId, { text });
+            form.reset();
+            await renderRecipeReviews(recipeId);
+            showNotification('Отзыв успешно добавлен', 'success');
+        } catch (error) {
+            showNotification(error.message || 'Ошибка при добавлении отзыва', 'error');
+        }
     };
 }
 
@@ -1165,7 +1203,7 @@ function updateAuthUI() {
         // Пользователь не авторизован
         if (authButton) authButton.style.display = 'block';
         if (userProfile) userProfile.style.display = 'none';
-}
+    }
 
     // Диспатчим событие для обновления UI
     window.dispatchEvent(new Event('userAuthChanged'));
@@ -1221,3 +1259,91 @@ document.addEventListener('DOMContentLoaded', () => {
     updateAuthUI();
     initializeProfile();
 });
+
+async function addToFavorites(recipeId) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        showNotification('Необходимо войти в аккаунт', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/.netlify/functions/api/recipes/${recipeId}/favorite`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Ошибка при добавлении в избранное');
+        }
+
+        showNotification('Рецепт добавлен в избранное', 'success');
+        updateFavoriteButton(recipeId);
+    } catch (error) {
+        showNotification(error.message, 'error');
+    }
+}
+
+async function removeFromFavorites(recipeId) {
+    const token = localStorage.getItem('token');
+    if (!token) {
+        showNotification('Необходимо войти в аккаунт', 'error');
+        return;
+    }
+
+    try {
+        const response = await fetch(`/.netlify/functions/api/recipes/${recipeId}/favorite`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error('Ошибка при удалении из избранного');
+        }
+
+        showNotification('Рецепт удален из избранного', 'success');
+        updateFavoriteButton(recipeId);
+    } catch (error) {
+        showNotification(error.message, 'error');
+    }
+}
+
+async function isInFavorites(recipeId) {
+    const token = localStorage.getItem('token');
+    if (!token) return false;
+
+    try {
+        const response = await fetch('/.netlify/functions/api/auth/profile', {
+            headers: {
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        const user = await response.json();
+        return user.favorites.includes(recipeId);
+    } catch (error) {
+        console.error('Ошибка при проверке избранного:', error);
+        return false;
+    }
+}
+
+async function updateFavoriteButton(recipeId) {
+    const button = document.querySelector(`.favorite-button[data-recipe="${recipeId}"]`);
+    if (!button) return;
+
+    const isFavorite = await isInFavorites(recipeId);
+    button.classList.toggle('active', isFavorite);
+    button.title = isFavorite ? 'Удалить из избранного' : 'Добавить в избранное';
+}
+
+async function toggleFavorite(recipeId) {
+    const isFavorite = await isInFavorites(recipeId);
+    if (isFavorite) {
+        await removeFromFavorites(recipeId);
+    } else {
+        await addToFavorites(recipeId);
+    }
+}
