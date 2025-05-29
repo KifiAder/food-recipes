@@ -5,9 +5,9 @@ const cors = require('cors');
 const path = require('path');
 
 // Импорт роутов
-const authRoutes = require('../routes/auth');
-const recipesRoutes = require('../routes/recipes');
-const reviewsRoutes = require('../routes/reviews');
+const authRoutes = require('./routes/auth');
+const recipesRoutes = require('./routes/recipes');
+const reviewsRoutes = require('./routes/reviews');
 
 const app = express();
 
