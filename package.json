@@ -3,10 +3,14 @@
   "version": "1.0.0",
   "description": "Веб-приложение для рецептов",
   "main": "functions/api.js",
+  "engines": {
+    "node": "16.x",
+    "npm": "8.x"
+  },
   "scripts": {
     "start": "netlify dev",
     "dev": "netlify dev",
-    "build": "netlify build",
+    "build": "npm install && netlify build",
     "deploy": "netlify deploy --prod"
   },
   "dependencies": {
