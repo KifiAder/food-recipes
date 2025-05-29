@@ -5,15 +5,52 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const auth = require('../middleware/auth');
 
+// Валидация данных пользователя
+const validateUserData = (data) => {
+    const errors = [];
+    
+    if (!data.username || data.username.length < 3) {
+        errors.push('Имя пользователя должно содержать минимум 3 символа');
+    }
+    
+    if (!data.email || !data.email.includes('@')) {
+        errors.push('Укажите корректный email адрес');
+    }
+    
+    if (!data.password || data.password.length < 6) {
+        errors.push('Пароль должен содержать минимум 6 символов');
+    }
+    
+    return errors;
+};
+
 // Регистрация
 router.post('/register', async (req, res) => {
     try {
         const { username, email, password } = req.body;
 
+        // Валидация данных
+        const validationErrors = validateUserData({ username, email, password });
+        if (validationErrors.length > 0) {
+            return res.status(400).json({ 
+                message: 'Ошибка валидации',
+                errors: validationErrors 
+            });
+        }
+
         // Проверка существования пользователя
-        const existingUser = await User.findOne({ email });
+        const existingUser = await User.findOne({ 
+            $or: [
+                { email: email.toLowerCase() },
+                { username: username.trim() }
+            ]
+        });
+        
         if (existingUser) {
-            return res.status(400).json({ message: 'Пользователь уже существует' });
+            if (existingUser.email === email.toLowerCase()) {
+                return res.status(400).json({ message: 'Этот email уже зарегистрирован' });
+            }
+            return res.status(400).json({ message: 'Это имя пользователя уже занято' });
         }
 
         // Хеширование пароля
@@ -21,8 +58,8 @@ router.post('/register', async (req, res) => {
 
         // Создание нового пользователя
         const user = new User({
-            username,
-            email,
+            username: username.trim(),
+            email: email.toLowerCase(),
             password: hashedPassword
         });
 
@@ -35,9 +72,20 @@ router.post('/register', async (req, res) => {
             { expiresIn: '7d' }
         );
 
-        res.status(201).json({ token, userId: user._id });
+        res.status(201).json({ 
+            token, 
+            user: {
+                id: user._id,
+                username: user.username,
+                email: user.email
+            }
+        });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error('Ошибка при регистрации:', error);
+        res.status(500).json({ 
+            message: 'Ошибка при регистрации пользователя',
+            error: process.env.NODE_ENV === 'development' ? error.message : undefined
+        });
     }
 });
 

@@ -864,11 +864,11 @@ function initAuthModal() {
             e.preventDefault();
             console.log('Отправка формы регистрации');
             
-            const name = document.getElementById('registerName').value.trim();
+            const username = document.getElementById('registerName').value.trim();
             const email = document.getElementById('registerEmail').value.trim();
             const password = document.getElementById('registerPassword').value;
 
-            console.log('Данные для регистрации:', { name, email });
+            console.log('Данные для регистрации:', { username, email });
 
             try {
                 const response = await fetch('/.netlify/functions/api/auth/register', {
@@ -876,7 +876,7 @@ function initAuthModal() {
                     headers: {
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify({ name, email, password })
+                    body: JSON.stringify({ username, email, password })
                 });
 
                 const data = await response.json();
