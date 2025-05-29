@@ -33,98 +33,77 @@ const upload = multer({
 // Получение всех рецептов
 router.get('/', async (req, res) => {
     try {
-        const recipes = await Recipe.find()
-            .populate('author', 'username')
-            .sort('-createdAt');
+        const recipes = await Recipe.find();
         res.json(recipes);
     } catch (error) {
-        res.status(500).json({ message: 'Ошибка при получении рецептов' });
+        res.status(500).json({ message: error.message });
     }
 });
 
-// Получение рецепта по ID
+// Получение конкретного рецепта
 router.get('/:id', async (req, res) => {
     try {
-        const recipe = await Recipe.findById(req.params.id)
-            .populate('author', 'username')
-            .populate({
-                path: 'reviews',
-                populate: { path: 'author', select: 'username' }
-            });
-
+        const recipe = await Recipe.findById(req.params.id);
         if (!recipe) {
             return res.status(404).json({ message: 'Рецепт не найден' });
         }
-
         res.json(recipe);
     } catch (error) {
-        res.status(500).json({ message: 'Ошибка при получении рецепта' });
+        res.status(500).json({ message: error.message });
     }
 });
 
-// Добавление нового рецепта (требуется авторизация)
+// Создание нового рецепта
 router.post('/', auth, async (req, res) => {
+    const recipe = new Recipe({
+        ...req.body,
+        author: req.userId
+    });
+
     try {
-        const { name, image, ingredients, steps, type } = req.body;
-
-        const recipe = new Recipe({
-            name,
-            image,
-            ingredients,
-            steps,
-            type,
-            author: req.user._id
-        });
-
-        await recipe.save();
-        res.status(201).json(recipe);
+        const newRecipe = await recipe.save();
+        res.status(201).json(newRecipe);
     } catch (error) {
-        res.status(500).json({ message: 'Ошибка при создании рецепта' });
+        res.status(400).json({ message: error.message });
     }
 });
 
-// Обновление рецепта (только автор)
-router.put('/:id', auth, async (req, res) => {
+// Обновление рецепта
+router.patch('/:id', auth, async (req, res) => {
     try {
         const recipe = await Recipe.findById(req.params.id);
-
         if (!recipe) {
             return res.status(404).json({ message: 'Рецепт не найден' });
         }
 
-        if (recipe.author.toString() !== req.user._id.toString()) {
-            return res.status(403).json({ message: 'Нет прав для редактирования' });
+        if (recipe.author.toString() !== req.userId) {
+            return res.status(403).json({ message: 'Нет прав на редактирование' });
         }
 
-        const updatedRecipe = await Recipe.findByIdAndUpdate(
-            req.params.id,
-            req.body,
-            { new: true }
-        );
-
+        Object.assign(recipe, req.body);
+        const updatedRecipe = await recipe.save();
         res.json(updatedRecipe);
     } catch (error) {
-        res.status(500).json({ message: 'Ошибка при обновлении рецепта' });
+        res.status(400).json({ message: error.message });
     }
 });
 
-// Удаление рецепта (только автор)
+// Удаление рецепта
 router.delete('/:id', auth, async (req, res) => {
     try {
         const recipe = await Recipe.findById(req.params.id);
-
         if (!recipe) {
             return res.status(404).json({ message: 'Рецепт не найден' });
         }
 
-        if (recipe.author.toString() !== req.user._id.toString()) {
-            return res.status(403).json({ message: 'Нет прав для удаления' });
+        if (recipe.author.toString() !== req.userId) {
+            return res.status(403).json({ message: 'Нет прав на удаление' });
         }
 
         await recipe.remove();
-        res.json({ message: 'Рецепт успешно удален' });
+        res.json({ message: 'Рецепт удален' });
     } catch (error) {
-        res.status(500).json({ message: 'Ошибка при удалении рецепта' });
+        res.status(500).json({ message: error.message });
     }
 });
 
