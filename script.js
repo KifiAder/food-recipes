@@ -743,6 +743,42 @@ function showNotification(message, type = 'success') {
     }, 3000);
 }
 
+// Функция для загрузки навигации
+function loadNavigation() {
+    const navPlaceholder = document.getElementById('nav-placeholder');
+    if (navPlaceholder) {
+        fetch('nav.html')
+            .then(response => response.text())
+            .then(data => {
+                navPlaceholder.innerHTML = data;
+                // После загрузки навигации инициализируем все компоненты
+                initializeAfterNavLoad();
+                // Инициализируем модальное окно авторизации
+                loadAuthModal();
+            });
+    } else {
+        // Если нет плейсхолдера, значит навигация уже встроена в HTML
+        initializeAfterNavLoad();
+        loadAuthModal();
+    }
+}
+
+// Функция для загрузки модального окна авторизации
+async function loadAuthModal() {
+    const authContainer = document.getElementById('auth-modal-container');
+    if (!authContainer) return;
+
+    try {
+        const response = await fetch('auth-modal.html');
+        const html = await response.text();
+        authContainer.innerHTML = html;
+        initAuthModal();
+        console.log('Модальное окно авторизации успешно загружено');
+    } catch (error) {
+        console.error('Ошибка при загрузке модального окна:', error);
+    }
+}
+
 // Функция инициализации модального окна авторизации
 function initAuthModal() {
     console.log('Инициализация модального окна авторизации');
@@ -752,14 +788,13 @@ function initAuthModal() {
         return;
     }
 
-    // Добавляем обработчик для открытия модального окна
-    const authButton = document.querySelector('.auth-button');
-    if (authButton) {
-        authButton.addEventListener('click', () => {
+    // Добавляем обработчики для всех кнопок авторизации
+    document.querySelectorAll('.auth-button').forEach(button => {
+        button.addEventListener('click', () => {
             console.log('Клик по кнопке авторизации');
             modal.style.display = "block";
         });
-    }
+    });
 
     const closeBtn = modal.querySelector('.close');
     const tabButtons = modal.querySelectorAll('.tab-button');
@@ -767,18 +802,9 @@ function initAuthModal() {
     const loginForm = document.getElementById('loginForm');
     const registerForm = document.getElementById('registerForm');
 
-    console.log('Найдены элементы:', {
-        closeBtn: !!closeBtn,
-        tabButtons: tabButtons.length,
-        authForms: authForms.length,
-        loginForm: !!loginForm,
-        registerForm: !!registerForm
-    });
-
     // Закрытие модального окна
     if (closeBtn) {
         closeBtn.onclick = function() {
-            console.log('Закрытие модального окна');
             modal.style.display = "none";
         }
     }
@@ -786,7 +812,6 @@ function initAuthModal() {
     // Закрытие при клике вне модального окна
     window.onclick = function(event) {
         if (event.target == modal) {
-            console.log('Закрытие модального окна при клике вне его');
             modal.style.display = "none";
         }
     }
@@ -795,16 +820,13 @@ function initAuthModal() {
     tabButtons.forEach(button => {
         button.addEventListener('click', () => {
             const tab = button.getAttribute('data-tab');
-            console.log('Переключение на вкладку:', tab);
             
-            // Сначала деактивируем все вкладки и формы
             tabButtons.forEach(btn => btn.classList.remove('active'));
             authForms.forEach(form => {
                 form.style.display = 'none';
                 form.classList.remove('active');
             });
             
-            // Активируем нужную вкладку и форму
             button.classList.add('active');
             const targetForm = document.getElementById(`${tab}Form`);
             if (targetForm) {
@@ -820,84 +842,76 @@ function initAuthModal() {
         defaultTab.click();
     }
 
-    // Обработка формы входа
+    // Обработка форм
     if (loginForm) {
-        loginForm.addEventListener('submit', async function(e) {
-            e.preventDefault(); // Предотвращаем перезагрузку страницы
-            console.log('Отправка формы входа');
-            
-            const email = document.getElementById('loginEmail').value;
-            const password = document.getElementById('loginPassword').value;
-
-            try {
-                const response = await fetch('/.netlify/functions/api/auth/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ email, password })
-                });
-
-                const data = await response.json();
-                console.log('Ответ сервера при входе:', data);
-
-                if (response.ok) {
-                    localStorage.setItem('token', data.token);
-                    localStorage.setItem('user', JSON.stringify(data.user));
-                    showNotification('Вы успешно вошли в систему');
-                    updateAuthUI();
-                    modal.style.display = 'none';
-                    loginForm.reset();
-                } else {
-                    showNotification(data.message || 'Ошибка при входе', 'error');
-                }
-            } catch (error) {
-                console.error('Ошибка при входе:', error);
-                showNotification('Произошла ошибка при входе', 'error');
-            }
-        });
+        loginForm.addEventListener('submit', handleLogin);
     }
-
-    // Обработка формы регистрации
     if (registerForm) {
-        registerForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            console.log('Отправка формы регистрации');
-            
-            const username = document.getElementById('registerName').value.trim();
-            const email = document.getElementById('registerEmail').value.trim();
-            const password = document.getElementById('registerPassword').value;
+        registerForm.addEventListener('submit', handleRegister);
+    }
+}
 
-            console.log('Данные для регистрации:', { username, email });
+// Обработчик входа
+async function handleLogin(e) {
+    e.preventDefault();
+    const email = document.getElementById('loginEmail').value;
+    const password = document.getElementById('loginPassword').value;
 
-            try {
-                const response = await fetch('/.netlify/functions/api/auth/register', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ username, email, password })
-                });
-
-                const data = await response.json();
-                console.log('Ответ сервера при регистрации:', data);
-
-                if (response.ok) {
-                    showNotification('Регистрация успешна! Теперь вы можете войти');
-                    registerForm.reset();
-                    // Переключаемся на форму входа
-                    const loginTab = modal.querySelector('[data-tab="login"]');
-                    if (loginTab) {
-                        loginTab.click();
-                    }
-                } else {
-                    showNotification(data.message || 'Ошибка при регистрации', 'error');
-                }
-            } catch (error) {
-                console.error('Ошибка при регистрации:', error);
-                showNotification('Произошла ошибка при регистрации', 'error');
-            }
+    try {
+        const response = await fetch('/.netlify/functions/api/auth/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ email, password })
         });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+            showNotification('Вы успешно вошли в систему');
+            updateAuthUI();
+            document.getElementById('authModal').style.display = 'none';
+        } else {
+            showNotification(data.message || 'Ошибка при входе', 'error');
+        }
+    } catch (error) {
+        console.error('Ошибка при входе:', error);
+        showNotification('Произошла ошибка при входе', 'error');
+    }
+}
+
+// Обработчик регистрации
+async function handleRegister(e) {
+    e.preventDefault();
+    const username = document.getElementById('registerUsername').value;
+    const email = document.getElementById('registerEmail').value;
+    const password = document.getElementById('registerPassword').value;
+
+    try {
+        const response = await fetch('/.netlify/functions/api/auth/register', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username, email, password })
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            showNotification('Регистрация успешна! Теперь вы можете войти');
+            // Переключаемся на вкладку входа
+            const loginTab = document.querySelector('.tab-button[data-tab="login"]');
+            if (loginTab) loginTab.click();
+        } else {
+            showNotification(data.message || 'Ошибка при регистрации', 'error');
+        }
+    } catch (error) {
+        console.error('Ошибка при регистрации:', error);
+        showNotification('Произошла ошибка при регистрации', 'error');
     }
 }
 
@@ -907,22 +921,6 @@ function initializeAfterNavLoad() {
     initializeProfile();
 }
 
-// Функция для загрузки навигации
-function loadNavigation() {
-    const navPlaceholder = document.getElementById('nav-placeholder');
-    if (navPlaceholder) {
-        fetch('nav.html')
-            .then(response => response.text())
-            .then(data => {
-                navPlaceholder.innerHTML = data;
-                initializeAfterNavLoad();
-            });
-    } else {
-        // Если нет плейсхолдера, значит навигация уже встроена в HTML
-        initializeAfterNavLoad();
-    }
-}
-
 // Инициализируем навигацию при загрузке страницы
 document.addEventListener('DOMContentLoaded', loadNavigation);
 
@@ -930,20 +928,6 @@ document.addEventListener('DOMContentLoaded', loadNavigation);
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('Страница загружена');
     
-    // Загружаем модальное окно авторизации
-    const authContainer = document.getElementById('auth-modal-container');
-    if (authContainer) {
-        try {
-            const response = await fetch('auth-modal.html');
-            const html = await response.text();
-            authContainer.innerHTML = html;
-            // Инициализируем модальное окно после загрузки
-            initAuthModal();
-        } catch (error) {
-            console.error('Ошибка загрузки модального окна:', error);
-        }
-    }
-
     // Остальной код инициализации страницы...
     const path = window.location.pathname.split('/').pop() || 'index.html';
     console.log('Текущий путь:', path);

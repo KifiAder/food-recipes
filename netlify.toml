@@ -7,7 +7,9 @@
   external_node_modules = ["express", "mongoose", "jsonwebtoken", "bcryptjs", "cors"]
   node_bundler = "esbuild"
   included_files = ["routes/**", "models/**", "middleware/**"]
-  timeout = "30s"
+
+[functions.timeout]
+  duration = "30s"
 
 [build.environment]
   NODE_VERSION = "18.x"
